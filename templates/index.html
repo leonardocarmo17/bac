@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bac Bo – Análise de Transições</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+  <div class="container">
+    <h1>📊 Análise de Transições - Bac Bo</h1>
+    
+    <div class="filtros">
+      <label for="selectTempo">Período:</label>
+      <select id="selectTempo">
+        <option value="30">Últimos 30 minutos</option>
+        <option value="60">Última 1 hora</option>
+        <option value="300">Últimas 5 horas</option>
+        <option value="600">Últimas 10 horas</option>
+        <option value="1440">Últimas 24 horas</option>
+      </select>
+      <button id="btnAtualizar">Atualizar Agora</button>
+      <span id="ultimaAtualizacao" class="info"></span>
+    </div>
+
+    <div class="tabelas-container">
+      <!-- TABELA VERMELHO -->
+      <div class="tabela-box">
+        <h2 style="background-color: #ff4444; color: white; padding: 10px; margin: -20px -20px 15px -20px; border-radius: 8px 8px 0 0;">
+          🔴 VERMELHO
+        </h2>
+        <table id="tabelaVermelho" class="tabela-matriz"></table>
+      </div>
+
+      <!-- TABELA AZUL -->
+      <div class="tabela-box">
+        <h2 style="background-color: #4444ff; color: white; padding: 10px; margin: -20px -20px 15px -20px; border-radius: 8px 8px 0 0;">
+          🔵 AZUL
+        </h2>
+        <table id="tabelaAzul" class="tabela-matriz"></table>
+      </div>
+
+      <!-- TABELA EMPATE -->
+      <div class="tabela-box">
+        <h2 style="background-color: #ffaa00; color: white; padding: 10px; margin: -20px -20px 15px -20px; border-radius: 8px 8px 0 0;">
+          🟡 EMPATE
+        </h2>
+        <table id="tabelaEmpate" class="tabela-matriz"></table>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}" type="module"></script>
+</body>
+</html>

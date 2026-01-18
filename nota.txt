@@ -1,0 +1,3 @@
+P = Azul
+B = Vermelho
+T = Empate (Amarelo)
