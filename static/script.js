@@ -108,7 +108,7 @@ function atualizarCronometro(lista) {
 function renderTabelaMatriz(id, dados) {
   const tabela = document.getElementById(id);
   
-  // Extrair números únicos e ordenar
+  // Extrair cores únicas e ordenar
   const numeros = new Set();
   for (const cor in dados) {
     for (const numero in dados[cor]) {
@@ -117,20 +117,27 @@ function renderTabelaMatriz(id, dados) {
   }
   const numerosOrdenados = Array.from(numeros).sort((a, b) => a - b);
 
-  // Cores e multiplicadores
-  const linhas = ["AZUL", "VERMELHO", "EMPATE", "88 X", "25 X", "10 X"];
+  // Determinar a cor principal da tabela pelo ID
+  let corPrincipal = "azul";
+  if (id.includes("Vermelho")) corPrincipal = "vermelho";
+  else if (id.includes("Empate")) corPrincipal = "empate";
+  else if (id.includes("Azul")) corPrincipal = "azul";
 
-  let html = "<tr><th style='width: 100px;'>NÚMEROS</th>";
+  // Cores e multiplicadores
+  const linhas = ["AZUL", "VERMELHO", "EMPATE"];
+
+  let html = `<tr><td class="label-linha label-cor-${corPrincipal}" style='width: 100px;'>NÚMEROS</td>`;
   
   // Cabeçalho com números
   for (const num of numerosOrdenados) {
-    html += `<th>${num}</th>`;
+    html += `<th class="header-cor-${corPrincipal}">${num}</th>`;
   }
   html += "</tr>";
 
   // Cada linha (cor ou multiplicador)
   for (const linha of linhas) {
-    html += `<tr><td class="label-linha">${linha}</td>`;
+    // Toda a primeira coluna usa a cor principal da tabela
+    html += `<tr><td class="label-linha label-cor-${corPrincipal}" style="background-color: ${corPrincipal === 'vermelho' ? '#ff4444' : corPrincipal === 'azul' ? '#4444ff' : '#ffaa00'};">${linha}</td>`;
 
     for (const num of numerosOrdenados) {
       let valor = "";
@@ -180,11 +187,11 @@ async function atualizar() {
 
     // Filtrar dados pelos últimos N minutos
     const limiteIndices = Math.max(0, baralhos.length - (minutos * 12)); // ~12 por minuto (5s cada)
-    const baralhosFiltrados = baralhos.slice(limiteIndices);
+    const baralhosFiltrados = baralhos.slice(limiteIndices).reverse(); // Reverter para ler de baixo para cima
 
     // Processar transições
     const stats = processarTransicoes(baralhosFiltrados);
-    atualizarCronometro(baralhos);
+    atualizarCronometro(baralhos.reverse()); // Também reverter para o cronômetro
 
     // Renderizar 3 tabelas MATRIZ
     renderTabelaMatriz("tabelaVermelho", { Vermelho: stats.Vermelho, Azul: stats.Azul, Empate: stats.Empate });
