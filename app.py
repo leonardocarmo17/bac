@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, jsonify, render_template, request, send_file, Response
 import requests
 from datetime import datetime, timedelta
 import os
@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 URL = "https://api.jogosvirtual.com/jsons/historico_baralho_bacbo.json"
 OUTPUT_FILE = "baralhos_ultimos_2000.json"
-INTERVALO_ATUALIZACAO = 10  # segundos
+INTERVALO_ATUALIZACAO = 5  # segundos (otimizado)
 MAX_LINHAS = 2000
 
 MAPEAMENTO = {
@@ -60,7 +60,27 @@ def index():
 
 @app.route("/baralhos_ultimos_2000.json")
 def baralhos_json():
-    return send_file(os.path.join(os.path.dirname(__file__), OUTPUT_FILE))
+    response = send_file(os.path.join(os.path.dirname(__file__), OUTPUT_FILE))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+@app.route("/atualizacoes")
+def atualizacoes():
+    """Server-Sent Events para atualização em tempo real."""
+
+    def gerar():
+        while True:
+            try:
+                with open(OUTPUT_FILE, "r", encoding="utf-8") as f:
+                    dados = json.load(f)
+                    yield f"data: {json.dumps(dados)}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'erro': str(e)})}\n\n"
+            time.sleep(1)  # verifica a cada 1s (otimizado)
+
+    return Response(gerar(), mimetype='text/event-stream')
 
 @app.route("/dados")
 def dados():
@@ -120,4 +140,4 @@ thread_atualizacao = threading.Thread(target=atualizar_json_automatico, daemon=T
 thread_atualizacao.start()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False, host='127.0.0.1', port=5000)

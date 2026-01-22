@@ -72,6 +72,41 @@ h1 {
   background: #764ba2;
 }
 
+.btn-timer {
+  padding: 8px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-timer:hover {
+  background: #218838;
+}
+
+.btn-timer.active {
+  background: #ff4444;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
+.btn-timer-stop {
+  padding: 8px 20px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-timer-stop:hover {
+  background: #c82333;
+}
+
 .filtros .info {
   margin-left: auto;
   color: #666;
