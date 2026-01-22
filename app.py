@@ -10,7 +10,8 @@ app = Flask(__name__)
 
 URL = "https://api.jogosvirtual.com/jsons/historico_baralho_bacbo.json"
 OUTPUT_FILE = "baralhos_ultimos_2000.json"
-INTERVALO_ATUALIZACAO = 5  # segundos (otimizado)
+INTERVALO_ATUALIZACAO = 5  # frequência de polling da fonte (mantido curto)
+SEGUNDOS_POR_RODADA = 33   # cadência esperada de chegada de uma nova rodada
 MAX_LINHAS = 2000
 
 MAPEAMENTO = {
@@ -29,8 +30,8 @@ def gerar_tabelas(minutos):
     response = requests.get(URL, timeout=10)
     data = response.json()["baralhos"]["0"]
 
-    # janela por quantidade (aprox.)
-    limite = minutos * 60 // 5  # ajuste se quiser
+    # janela por quantidade (aprox.) usando a cadência de 33s por rodada
+    limite = minutos * 60 // SEGUNDOS_POR_RODADA
     dados = data[-limite:]
 
     tabelas = {

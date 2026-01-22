@@ -1,4 +1,5 @@
 const INTERVALO_ATUALIZACAO = 10000; // 10 segundos
+const SEGUNDOS_POR_RODADA = 33;     // cadência esperada de novas rodadas
 
 // ===============================
 // TIMER DE RESET AUTOMÁTICO
@@ -26,10 +27,26 @@ function iniciarTimerReset(minutos) {
 
   // Marcar que timer está ativo
   timerResetAtivo = true;
-  // Ainda não foi resetado
-  ultimoElementoVisto = null;
-
-  console.log(`✅ Timer iniciado de ${minutos} minutos`);
+  
+  // Pegar o PENÚLTIMO elemento do JSON como base IMEDIATAMENTE
+  fetch("/baralhos_ultimos_2000.json", { cache: "no-store" })
+    .then(res => res.json())
+    .then(json => {
+      const baralhos = json.baralhos["0"];
+      if (baralhos && baralhos.length > 1) {
+        ultimoElementoVisto = baralhos[baralhos.length - 2];
+        console.log(`✅ Timer iniciado com ${minutos} minutos`);
+        console.log(`   Elemento base marcado: ${ultimoElementoVisto}`);
+        console.log(`   Transições a partir de ${ultimoElementoVisto} serão contadas`);
+      } else if (baralhos && baralhos.length === 1) {
+        ultimoElementoVisto = baralhos[0];
+        console.log(`✅ Timer iniciado com ${minutos} minutos`);
+        console.log(`   Apenas 1 dado, usando como base: ${ultimoElementoVisto}`);
+      } else {
+        console.warn("⚠️ Array vazio ao iniciar timer");
+      }
+    })
+    .catch(err => console.error("Erro ao iniciar timer:", err));
 
   // Configurar timer para resetar
   timerIntervalId = setInterval(() => {
@@ -99,13 +116,16 @@ function resetarDados() {
     .then(json => {
       const baralhos = json.baralhos["0"];
       
-      // IMPORTANTE: Marcar o ÚLTIMO ELEMENTO ATUAL como referência
-      // Dados PASSADOS antes deste ponto serão IGNORADOS
-      if (baralhos.length > 0) {
-        ultimoElementoVisto = baralhos[baralhos.length - 1];
+      // IMPORTANTE: Marcar o PENÚLTIMO ELEMENTO ATUAL como referência
+      // Assim quando próximo dado chegar, contamos a transição corretamente
+      if (baralhos.length > 1) {
+        ultimoElementoVisto = baralhos[baralhos.length - 2];
         console.log(`🔄 RESET #${document.querySelectorAll('[data-reset-count]').length + 1}`);
-        console.log(`   Último elemento marcado: ${ultimoElementoVisto}`);
-        console.log(`   A partir da próxima mensagem, apenas dados APÓS este serão contados`);
+        console.log(`   Elemento base marcado: ${ultimoElementoVisto}`);
+        console.log(`   Transições a partir de ${ultimoElementoVisto} serão contadas`);
+      } else if (baralhos.length === 1) {
+        ultimoElementoVisto = baralhos[0];
+        console.log(`🔄 RESET - Apenas 1 dado, usando como base: ${ultimoElementoVisto}`);
       } else {
         console.log("⚠️ Array vazio, não há elemento para marcar");
       }
@@ -320,6 +340,7 @@ function renderizarTelas(json) {
 
   // Obter período selecionado em minutos
   const minutos = parseInt(document.getElementById("selectTempo").value);
+  const estimadosPorMinuto = 60 / SEGUNDOS_POR_RODADA; // ~1.8 para 33s
 
   // Se timer está ativo E já foi resetado (ultimoElementoVisto != null)
   // Então contar APENAS dados após o elemento marcado
@@ -340,23 +361,38 @@ function renderizarTelas(json) {
     }
   } else if (timerResetAtivo) {
     // Timer ativo mas ainda não foi resetado: usa período normal
-    const limiteIndices = Math.max(0, baralhos.length - (minutos * 12)); // ~12 por minuto (5s cada)
+    const limiteIndices = Math.max(0, baralhos.length - Math.ceil(minutos * estimadosPorMinuto));
     baralhosFiltrados = baralhos.slice(limiteIndices);
     console.log(`📊 TIMER ATIVO (aguardando reset) - últimos ${minutos}min (${baralhosFiltrados.length} dados)`);
   } else {
     // Timer desativado: comportamento normal
-    const limiteIndices = Math.max(0, baralhos.length - (minutos * 12)); // ~12 por minuto (5s cada)
+    const limiteIndices = Math.max(0, baralhos.length - Math.ceil(minutos * estimadosPorMinuto));
     baralhosFiltrados = baralhos.slice(limiteIndices);
     console.log(`📊 TIMER INATIVO - últimos ${minutos}min (${baralhosFiltrados.length} dados)`);
   }
 
+  // Se não há dados suficientes
+  if (baralhosFiltrados.length === 0) {
+    console.log("⚠️ Nenhum dado disponível");
+    document.getElementById("ultimaAtualizacao").innerText = "Aguardando novos dados...";
+    mostrarTabelasVazias();
+    return;
+  }
+
+  // Se há apenas 1 elemento e timer está ativo com reset
+  // Significa que apenas chegou o primeiro dado após o reset
+  // Aguarda pelo menos 2 elementos para criar uma transição
+  if (baralhosFiltrados.length === 1 && timerResetAtivo && ultimoElementoVisto !== null) {
+    console.log("⏳ Timer ativo: primeiro dado após reset - aguardando próximo para análise");
+    // NÃO renderizar nada, manter display anterior
+    document.getElementById("ultimaAtualizacao").innerText = "Aguardando mais dados...";
+    return;
+  }
+
+  // Se há menos de 2 dados e timer NÃO está ativo
   if (baralhosFiltrados.length < 2) {
     console.log("⚠️ Dados insuficientes para processar transições");
-    console.log(`   baralhos.length=${baralhos.length}, ultimoElementoVisto=${ultimoElementoVisto}`);
-    console.log(`   elementos após último visto: ${baralhosFiltrados.length}`);
     document.getElementById("ultimaAtualizacao").innerText = "Aguardando novos dados...";
-    
-    // SEMPRE renderizar tabelas com padrão, mesmo que vazias!
     mostrarTabelasVazias();
     return;
   }
@@ -466,6 +502,19 @@ document.getElementById("inputTimer").addEventListener("keypress", (e) => {
 });
 
 document.getElementById("btnTimerStop").addEventListener("click", pararTimerReset);
+
+document.getElementById("btnResetarTimer").addEventListener("click", () => {
+  if (!timerResetAtivo) {
+    alert("⚠️ Nenhum timer em execução. Inicie um timer primeiro!");
+    return;
+  }
+  
+  // Resetar imediatamente e reiniciar a contagem
+  resetarDados();
+  proximoReset = Date.now() + (intervaloResetMinutos * 60 * 1000);
+  atualizarContadorReset();
+  console.log(`✅ RESET MANUAL acionado - ${new Date().toLocaleTimeString("pt-BR")}`);
+});
 
 // ===============================
 // INICIALIZAÇÃO
