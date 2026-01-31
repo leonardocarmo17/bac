@@ -269,6 +269,36 @@ function atualizarCronometro(lista) {
 }
 
 // ===============================
+// COMPARADOR AZUL vs VERMELHO
+// ===============================
+function analisarDiferencaAzulVermelho(stats, corPrincipal, numerosFixos) {
+  /**
+   * Compara AZUL e VERMELHO para cada número DENTRO DA MESMA TABELA
+   * Para tabela Vermelho: compara stats.Vermelho[num].Azul vs stats.Vermelho[num].Vermelho
+   * Para tabela Azul: compara stats.Azul[num].Azul vs stats.Azul[num].Vermelho
+   * Retorna um objeto: { numero: { maior: "Azul"|"Vermelho", diferenca: number } }
+   */
+  const diferencas = {};
+
+  for (const num of numerosFixos) {
+    const valorAzul = stats[corPrincipal]?.[num]?.Azul || 0;
+    const valorVermelho = stats[corPrincipal]?.[num]?.Vermelho || 0;
+    
+    const diff = Math.abs(valorAzul - valorVermelho);
+    const maior = valorAzul > valorVermelho ? "Azul" : valorVermelho > valorAzul ? "Vermelho" : null;
+
+    diferencas[num] = {
+      maior: maior,
+      diferenca: diff,
+      azul: valorAzul,
+      vermelho: valorVermelho
+    };
+  }
+
+  return diferencas;
+}
+
+// ===============================
 // RENDER - TABELA MATRIZ (ESTILO EXCEL)
 // ===============================
 function renderTabelaMatriz(id, stats) {
@@ -286,6 +316,10 @@ function renderTabelaMatriz(id, stats) {
     numerosFixos = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Amarelo tem 2 a 12
   }
 
+  // Analisar diferenças para todas as tabelas (Azul, Vermelho e Empate)
+  let diferencas = {};
+  diferencas = analisarDiferencaAzulVermelho(stats, corPrincipal, numerosFixos);
+
   // Cores que aparecem nas linhas
   const coresLinhas = ["Azul", "Vermelho", "Empate"];
   const corPrincipalMinuscula = corPrincipal.toLowerCase();
@@ -294,7 +328,14 @@ function renderTabelaMatriz(id, stats) {
   
   // Cabeçalho com números fixos
   for (const num of numerosFixos) {
-    html += `<th class="header-cor-${corPrincipalMinuscula}">${num}</th>`;
+    let classeHeader = `header-cor-${corPrincipalMinuscula}`;
+    
+    // Aplicar classe de cor forte se diferença >= 4
+    if (diferencas[num]?.diferenca >= 4) {
+      classeHeader += ` ${corPrincipalMinuscula}-forte`;
+    }
+
+    html += `<th class="${classeHeader}">${num}</th>`;
   }
   html += "</tr>";
 
